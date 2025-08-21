@@ -1,0 +1,68 @@
+"""
+Filtering logic for smutscrape
+"""
+
+import datetime
+
+def parse_date(date_str):
+    try:
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+def parse_duration(dur_str):
+    # Try to normalize duration like "12:34" -> seconds
+    if not dur_str:
+        return None
+    try:
+        if ":" in dur_str:
+            parts = dur_str.split(":")
+            if len(parts) == 2:
+                return int(parts[0]) * 60 + int(parts[1])
+            elif len(parts) == 3:
+                return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        return int(dur_str)
+    except Exception:
+        return None
+
+
+def should_keep_list_entry(video_data, site_config, general_config):
+    min_dur = general_config.get("min_duration")
+    date_range = general_config.get("date_range")
+
+    duration = parse_duration(video_data.get("duration"))
+    upload_date = parse_date(video_data.get("upload_date"))
+
+    if min_dur and duration and duration < min_dur:
+        return False, None
+
+    if date_range and upload_date:
+        try:
+            start, end = date_range
+            if (start and upload_date < start) or (end and upload_date > end):
+                return False, None
+        except Exception:
+            pass
+
+    return True, None
+
+
+def should_keep_video_page(url, raw_data, site_config, general_config):
+    min_dur = general_config.get("min_duration")
+    date_range = general_config.get("date_range")
+
+    duration = parse_duration(raw_data.get("duration"))
+    upload_date = parse_date(raw_data.get("upload_date"))
+
+    if min_dur and duration and duration < min_dur:
+        return False, None
+
+    if date_range and upload_date:
+        try:
+            start, end = date_range
+            if (start and upload_date < start) or (end and upload_date > end):
+                return False, None
+        except Exception:
+            pass
+
+    return True, None
